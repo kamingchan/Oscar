@@ -210,7 +210,7 @@ thread_create (const char *name, int priority,
   /* Add to run queue. */
   thread_unblock (t);
 
-  /* */
+  /* Check priority*/
   if (priority > list_entry(list_head (&ready_list), struct thread, elem)->priority)
     thread_yield ();
 
