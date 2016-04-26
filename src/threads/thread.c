@@ -182,7 +182,6 @@ thread_create (const char *name, int priority,
 
   /* Initialize thread. */
   init_thread (t, name, priority);
-  t->ticks_blocked = 0;
   tid = t->tid = allocate_tid ();
 
   /* Prepare thread for first run by initializing its stack.
@@ -210,9 +209,7 @@ thread_create (const char *name, int priority,
   /* Add to run queue. */
   thread_unblock (t);
 
-  /* Check priority*/
-  if (priority > list_entry(list_head (&ready_list), struct thread, elem)->priority)
-    thread_yield ();
+  thread_yield ();
 
   return tid;
 }
@@ -250,31 +247,9 @@ thread_unblock (struct thread *t)
 
   old_level = intr_disable ();
   ASSERT (t->status == THREAD_BLOCKED);
-  // list_push_back (&ready_list, &t->elem);
-  list_insert_ordered (&ready_list, &t->elem, cmp_by_priority, NULL);
+  list_insert_ordered (&ready_list, &t->elem, thread_cmp_by_priority, NULL);
   t->status = THREAD_READY;
   intr_set_level (old_level);
-}
-
-void
-thread_check_and_block (struct thread *t, void *aux UNUSED)
-{
-  if (t->status == THREAD_BLOCKED && t->ticks_blocked > 0)
-  {
-      t->ticks_blocked--;
-      if (t->ticks_blocked == 0)
-      {
-          thread_unblock(t);
-      }
-  }
-}
-
-/* priority compare function. */
-bool
-cmp_by_priority (const struct list_elem *a, const struct list_elem *b, void *aux UNUSED)
-{
-  return list_entry(a, struct thread, elem)->priority >
-         list_entry(b, struct thread, elem)->priority;
 }
 
 /* Returns the name of the running thread. */
@@ -343,8 +318,7 @@ thread_yield (void)
 
   old_level = intr_disable ();
   if (cur != idle_thread)
-    // list_push_back (&ready_list, &cur->elem);
-    list_insert_ordered (&ready_list, &cur->elem, cmp_by_priority, NULL);
+    list_insert_ordered (&ready_list, &cur->elem, thread_cmp_by_priority, NULL);
   cur->status = THREAD_READY;
   schedule ();
   intr_set_level (old_level);
@@ -367,13 +341,54 @@ thread_foreach (thread_action_func *func, void *aux)
     }
 }
 
+/* Check the blocked thread */
+void
+thread_check_and_block (struct thread *t)
+{
+  if (t->status == THREAD_BLOCKED && t->ticks_blocked > 0)
+  {
+      t->ticks_blocked--;
+      if (t->ticks_blocked == 0)
+          thread_unblock (t);
+  }
+}
+
 /* Sets the current thread's priority to NEW_PRIORITY. */
 void
 thread_set_priority (int new_priority)
 {
-  thread_current ()->priority = new_priority;
-  if (new_priority < list_entry(list_head (&ready_list), struct thread, elem)->priority)
-    thread_yield ();
+  thread_current ()->old_priority = new_priority;
+  thread_check_priority (thread_current ());
+  thread_yield ();
+}
+
+/* Update priority. */
+void
+thread_check_priority (struct thread *t)
+{
+  int max_priority = PRI_MIN;
+
+  if (!list_empty (&t->locks_holding))
+  {
+    list_sort (&t->locks_holding, lock_cmp_priority, NULL);
+    if (list_entry (list_front (&t->locks_holding), struct lock, elem)->priority > max_priority)
+      max_priority = list_entry (list_front (&t->locks_holding), struct lock, elem)->priority;
+  }
+
+  if (max_priority > t->old_priority)
+    t->priority = max_priority;
+  else
+    t->priority = t->old_priority;
+
+  list_sort (&ready_list, thread_cmp_by_priority, NULL);
+}
+
+/* Compare threads by priority. */
+bool
+thread_cmp_by_priority (const struct list_elem *a, const struct list_elem *b, void *aux UNUSED)
+{
+  return list_entry (a, struct thread, elem)->priority >
+         list_entry (b, struct thread, elem)->priority;
 }
 
 /* Returns the current thread's priority. */
@@ -388,6 +403,7 @@ void
 thread_set_nice (int nice UNUSED)
 {
   /* Not yet implemented. */
+  return 0;
 }
 
 /* Returns the current thread's nice value. */
@@ -411,7 +427,6 @@ int
 thread_get_recent_cpu (void)
 {
   /* Not yet implemented. */
-  return 0;
 }
 
 /* Idle thread.  Executes when no other thread is ready to run.
@@ -497,10 +512,12 @@ init_thread (struct thread *t, const char *name, int priority)
   t->status = THREAD_BLOCKED;
   strlcpy (t->name, name, sizeof t->name);
   t->stack = (uint8_t *) t + PGSIZE;
+  t->ticks_blocked = 0;
   t->priority = priority;
+  t->old_priority = priority;
+  list_init (&t->locks_holding);
   t->magic = THREAD_MAGIC;
-  // list_push_back (&all_list, &t->allelem);
-  list_insert_ordered (&all_list, &t->allelem, cmp_by_priority, NULL);
+  list_insert_ordered (&all_list, &t->allelem, thread_cmp_by_priority, NULL);
 }
 
 /* Allocates a SIZE-byte frame at the top of thread T's stack and

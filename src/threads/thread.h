@@ -88,11 +88,13 @@ struct thread
     char name[16];                      /* Name (for debugging purposes). */
     uint8_t *stack;                     /* Saved stack pointer. */
     int priority;                       /* Priority. */
-    int ticks_blocked;                  /* Thread blocked. */
     struct list_elem allelem;           /* List element for all threads list. */
 
     /* Shared between thread.c and synch.c. */
     struct list_elem elem;              /* List element. */
+    int old_priority;                   /* Base priority. */
+    struct list locks_holding;          /* Locks that the thread is holding. */
+    struct lock *lock_waiting;          /* The lock that the thread is waiting for. */
 
 #ifdef USERPROG
     /* Owned by userprog/process.c. */
@@ -101,6 +103,9 @@ struct thread
 
     /* Owned by thread.c. */
     unsigned magic;                     /* Detects stack overflow. */
+
+    /* Owned by thread.c and timer.c. */
+    int ticks_blocked;                  /* Record the time the thread has been blocked. */
   };
 
 /* If false (default), use round-robin scheduler.
@@ -119,8 +124,6 @@ tid_t thread_create (const char *name, int priority, thread_func *, void *);
 
 void thread_block (void);
 void thread_unblock (struct thread *);
-void thread_check_and_block (struct thread *, void * UNUSED);
-bool cmp_by_priority (const struct list_elem *, const struct list_elem *, void * UNUSED);
 
 struct thread *thread_current (void);
 tid_t thread_tid (void);
@@ -132,9 +135,12 @@ void thread_yield (void);
 /* Performs some operation on thread t, given auxiliary data AUX. */
 typedef void thread_action_func (struct thread *t, void *aux);
 void thread_foreach (thread_action_func *, void *);
+void thread_check_and_block (struct thread *t);
 
 int thread_get_priority (void);
 void thread_set_priority (int);
+void thread_check_priority (struct thread *);
+bool thread_cmp_by_priority (const struct list_elem *a, const struct list_elem *b, void *aux UNUSED);
 
 int thread_get_nice (void);
 void thread_set_nice (int);
