@@ -370,7 +370,7 @@ thread_check_priority (struct thread *t)
 
   if (!list_empty (&t->locks_holding))
   {
-    list_sort (&t->locks_holding, lock_cmp_priority, NULL);
+    list_sort (&t->locks_holding, lock_cmp_by_priority, NULL);
     if (list_entry (list_front (&t->locks_holding), struct lock, elem)->priority > max_priority)
       max_priority = list_entry (list_front (&t->locks_holding), struct lock, elem)->priority;
   }
