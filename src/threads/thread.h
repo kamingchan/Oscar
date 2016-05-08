@@ -92,7 +92,7 @@ struct thread
 
     /* Shared between thread.c and synch.c. */
     struct list_elem elem;              /* List element. */
-    int old_priority;                   /* Base priority. */
+    int old_priority;                   /* Old priority. */
     struct list locks_holding;          /* Locks that the thread is holding. */
     struct lock *lock_waiting;          /* The lock that the thread is waiting for. */
 

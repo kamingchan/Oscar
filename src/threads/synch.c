@@ -180,7 +180,7 @@ void
 lock_init (struct lock *lock)
 {
   ASSERT (lock != NULL);
-
+  lock->priority = PRI_MIN;
   lock->holder = NULL;
   sema_init (&lock->semaphore, 1);
 }
@@ -216,17 +216,9 @@ lock_acquire (struct lock *lock)
   sema_down (&lock->semaphore);
 
   thread_current ()->lock_waiting = NULL;
-  lock->priority = thread_current ()->priority;
-
   list_insert_ordered (&thread_current ()->locks_holding, &lock->elem, lock_cmp_by_priority, NULL);
-
-  if (lock->priority > thread_current ()->priority)
-  {
-    thread_current ()->priority = lock->priority;
-    thread_yield ();
-  }
-
   lock->holder = thread_current ();
+  thread_check_priority (thread_current ());
 }
 
 /* Tries to acquires LOCK and returns true if successful or false
@@ -262,7 +254,7 @@ lock_release (struct lock *lock)
 
   list_remove (&lock->elem);
   thread_check_priority (thread_current ());
-
+  lock->priority = PRI_MIN;
   lock->holder = NULL;
   sema_up (&lock->semaphore);
 }
