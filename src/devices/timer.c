@@ -3,6 +3,7 @@
 #include <inttypes.h>
 #include <round.h>
 #include <stdio.h>
+#include <fix.h>
 #include "devices/pit.h"
 #include "threads/interrupt.h"
 #include "threads/synch.h"
@@ -177,6 +178,14 @@ timer_interrupt (struct intr_frame *args UNUSED)
   ticks++;
   thread_tick ();
   thread_foreach (thread_check_and_block, NULL);
+  thread_add_recent_cpu ();
+  if (ticks % TIMER_FREQ == 0)
+  {
+    thread_update_load_avg ();
+    thread_foreach (thread_update_recent_cpu, NULL);
+  }
+  if (ticks % 4 == 0)
+    thread_foreach (thread_update_priority, NULL);
 }
 
 /* Returns true if LOOPS iterations waits for more than one timer

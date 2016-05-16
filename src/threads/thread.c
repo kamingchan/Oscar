@@ -49,6 +49,7 @@ struct kernel_thread_frame
 static long long idle_ticks;    /* # of timer ticks spent idle. */
 static long long kernel_ticks;  /* # of timer ticks in kernel threads. */
 static long long user_ticks;    /* # of timer ticks in user programs. */
+static fix load_avg;            /* System average load. */
 
 /* Scheduling. */
 #define TIME_SLICE 4            /* # of timer ticks to give each thread. */
@@ -112,6 +113,9 @@ thread_start (void)
 
   /* Start preemptive thread scheduling. */
   intr_enable ();
+
+  /* Init load average. */
+  load_avg = F_CONST(0);
 
   /* Wait for the idle thread to initialize idle_thread. */
   sema_down (&idle_started);
@@ -366,21 +370,21 @@ thread_set_priority (int new_priority)
 void
 thread_update_priority (struct thread *t)
 {
-  int max_priority = PRI_MIN;
-
-  if (!list_empty (&t->locks_holding))
+  if (t == idle_thread) return;
+  if (!thread_mlfqs)
   {
-    list_sort (&t->locks_holding, lock_cmp_by_priority, NULL);
-    if (list_entry (list_front (&t->locks_holding), struct lock, elem)->priority > max_priority)
-      max_priority = list_entry (list_front (&t->locks_holding), struct lock, elem)->priority;
+    int max_priority = PRI_MIN;
+
+    if (!list_empty (&t->locks_holding))
+    {
+      list_sort (&t->locks_holding, lock_cmp_by_priority, NULL);
+      if (list_entry (list_front (&t->locks_holding), struct lock, elem)->priority > max_priority)
+        max_priority = list_entry (list_front (&t->locks_holding), struct lock, elem)->priority;
+    }
+    t->priority = max_priority > t->old_priority ? max_priority : t->old_priority;
   }
-
-  if (max_priority > t->old_priority)
-    t->priority = max_priority;
   else
-    t->priority = t->old_priority;
-
-  list_sort (&ready_list, thread_cmp_by_priority, NULL);
+    t->priority = PRI_MAX - F_INT_N (F_ADD_INT (F_DIV_INT (t->recent_cpu, 4), (2 * t->nice)));
 }
 
 /* Compare threads by priority. */
@@ -400,33 +404,64 @@ thread_get_priority (void)
 
 /* Sets the current thread's nice value to NICE. */
 void
-thread_set_nice (int nice UNUSED)
+thread_set_nice (int nice)
 {
-  /* Not yet implemented. */
-  return 0;
+  thread_current ()->nice = nice;
+  thread_update_priority (thread_current ());
+  thread_yield ();
 }
 
 /* Returns the current thread's nice value. */
 int
 thread_get_nice (void)
 {
-  /* Not yet implemented. */
-  return 0;
+  return thread_current ()->nice;
 }
 
 /* Returns 100 times the system load average. */
 int
 thread_get_load_avg (void)
 {
-  /* Not yet implemented. */
-  return 0;
+  return F_INT_N (F_MULT_INT (load_avg, 100));
+}
+
+/* Increase recent_cpu of current thread. */
+void
+thread_add_recent_cpu (void)
+{
+  if (thread_current () != idle_thread)
+    thread_current ()->recent_cpu = F_ADD_INT (thread_current ()->recent_cpu, 1);
 }
 
 /* Returns 100 times the current thread's recent_cpu value. */
 int
 thread_get_recent_cpu (void)
 {
-  /* Not yet implemented. */
+  return F_INT_N (F_MULT_INT (thread_current ()->recent_cpu, 100));
+}
+
+/* Update current thread recent_cpu. */
+void
+thread_update_recent_cpu (struct thread *t)
+{
+  if (t != idle_thread)
+    t->recent_cpu = F_ADD_INT (F_MULT (F_DIV (F_MULT_INT (load_avg, 2), F_ADD_INT (F_MULT_INT (load_avg, 2), 1)), t->recent_cpu), t->nice);
+}
+
+/* Count ready threads. */
+int
+thread_count_ready (void)
+{
+  int ready_threads = list_size (&ready_list);
+  if (thread_current () != idle_thread) ready_threads++;
+  return ready_threads;
+}
+
+/* Update average load. */
+void
+thread_update_load_avg (void)
+{
+  load_avg = F_DIV_INT (F_ADD_INT (F_MULT_INT (load_avg, 59), thread_count_ready ()), 60);
 }
 
 /* Idle thread.  Executes when no other thread is ready to run.
@@ -515,6 +550,8 @@ init_thread (struct thread *t, const char *name, int priority)
   t->ticks_blocked = 0;
   t->priority = priority;
   t->old_priority = priority;
+  t->nice = 0;
+  t->recent_cpu = F_CONST(0);
   list_init (&t->locks_holding);
   t->magic = THREAD_MAGIC;
   list_insert_ordered (&all_list, &t->allelem, thread_cmp_by_priority, NULL);
