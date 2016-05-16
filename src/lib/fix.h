@@ -1,12 +1,12 @@
 #ifndef __LIB_FIX_H
 #define __LIB_FIX_H
 
-typedef int fix_t;
+typedef int fix;
 
 #define SHIFT_BIT 16
 
 /* Parameter: int; Return type: fix; Conver int to fix */
-#define F_CONST(A) ((fix_t)(A << SHIFT_BIT))
+#define F_CONST(A) ((fix)(A << SHIFT_BIT))
 
 /* Parameter: fix, fix; Return type: fix; */
 #define F_ADD(A, B) (A + B)
@@ -27,10 +27,10 @@ typedef int fix_t;
 #define F_DIV_INT(A, B) (A / B)
 
 /* Parameter: fix, fix; Return type: fix; */
-#define F_MULT(A, B) ((fix_t)((((int64_t) A) * (int64_t) B) >> SHIFT_BIT))
+#define F_MULT(A, B) ((fix)((((int64_t) A) * (int64_t) B) >> SHIFT_BIT))
 
 /* Parameter: fix, fix; Return type: fix; */
-#define F_DIV(A, B) ((fix_t)((((int64_t) A) << SHIFT_BIT) / B))
+#define F_DIV(A, B) ((fix)((((int64_t) A) << SHIFT_BIT) / B))
 
 /* Parameter: fix; Return type: int; Rounding toward zero; */
 #define F_INT_Z(A) (A >> SHIFT_BIT)
