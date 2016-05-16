@@ -178,12 +178,14 @@ timer_interrupt (struct intr_frame *args UNUSED)
   ticks++;
   thread_tick ();
   thread_foreach (thread_check_and_block, NULL);
+  thread_add_recent_cpu ();
   if (ticks % TIMER_FREQ == 0)
   {
-    /* Update average load. */
-    load_avg = F_DIV_INT (F_ADD_INT (F_MULT_INT (load_avg, 59), thread_count_ready ()), 60);
     thread_update_load_avg ();
+    thread_foreach (thread_update_recent_cpu, NULL);
   }
+  if (ticks % 4 == 0)
+    thread_foreach (thread_update_priority, NULL);
 }
 
 /* Returns true if LOOPS iterations waits for more than one timer
