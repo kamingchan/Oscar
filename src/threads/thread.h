@@ -105,7 +105,7 @@ struct thread
     unsigned magic;                     /* Detects stack overflow. */
 
     /* Owned by thread.c and timer.c. */
-    int ticks_blocked;                  /* Record the time the thread has been blocked. */
+    int64_t ticks_blocked;                  /* Record the time the thread has been blocked. */
   };
 
 /* If false (default), use round-robin scheduler.
