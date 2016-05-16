@@ -431,6 +431,13 @@ thread_get_recent_cpu (void)
   /* Not yet implemented. */
 }
 
+/* Update recent_cpu. */
+void
+thread_update_recent_cpu (void)
+{
+
+}
+
 /* Idle thread.  Executes when no other thread is ready to run.
 
    The idle thread is initially put on the ready list by

@@ -3,6 +3,7 @@
 #include <inttypes.h>
 #include <round.h>
 #include <stdio.h>
+#include <fix.h>
 #include "devices/pit.h"
 #include "threads/interrupt.h"
 #include "threads/synch.h"
@@ -19,6 +20,9 @@
 
 /* Number of timer ticks since OS booted. */
 static int64_t ticks;
+
+/* System average load. */
+static fix load_avg;
 
 /* Number of loops per timer tick.
    Initialized by timer_calibrate(). */
@@ -177,6 +181,11 @@ timer_interrupt (struct intr_frame *args UNUSED)
   ticks++;
   thread_tick ();
   thread_foreach (thread_check_and_block, NULL);
+  if (ticks % TIMER_FREQ == 0)
+  {
+    /* Update average load. */
+    load_avg = F_DIV_INT (F_ADD_INT (F_MULT_INT (load_avg, 59), thread_count_ready ()), 60);
+  }
 }
 
 /* Returns true if LOOPS iterations waits for more than one timer
