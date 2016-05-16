@@ -382,7 +382,6 @@ thread_update_priority (struct thread *t)
   }
   else
     t->priority = t->old_priority;
-  list_sort (&ready_list, thread_cmp_by_priority, NULL);
 }
 
 /* Compare threads by priority. */
