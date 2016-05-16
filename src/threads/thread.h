@@ -139,7 +139,7 @@ void thread_check_and_block (struct thread *t);
 
 int thread_get_priority (void);
 void thread_set_priority (int);
-void thread_check_priority (struct thread *);
+void thread_update_priority (struct thread *);
 bool thread_cmp_by_priority (const struct list_elem *a, const struct list_elem *b, void *aux UNUSED);
 
 int thread_get_nice (void);

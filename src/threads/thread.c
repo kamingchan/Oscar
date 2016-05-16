@@ -358,13 +358,13 @@ void
 thread_set_priority (int new_priority)
 {
   thread_current ()->old_priority = new_priority;
-  thread_check_priority (thread_current ());
+  thread_update_priority (thread_current ());
   thread_yield ();
 }
 
 /* Update priority. */
 void
-thread_check_priority (struct thread *t)
+thread_update_priority (struct thread *t)
 {
   int max_priority = PRI_MIN;
 
