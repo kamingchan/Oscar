@@ -114,6 +114,9 @@ thread_start (void)
   /* Start preemptive thread scheduling. */
   intr_enable ();
 
+  /* Init load average. */
+  load_avg = F_CONST(0);
+
   /* Wait for the idle thread to initialize idle_thread. */
   sema_down (&idle_started);
 }
@@ -417,8 +420,15 @@ thread_get_nice (void)
 int
 thread_get_load_avg (void)
 {
-  /* Not yet implemented. */
-  return 0;
+  return F_INT_N (F_MULT_INT (load_avg, 100));
+}
+
+/* Increase recent_cpu of current thread. */
+void
+thread_add_recent_cpu (void)
+{
+  if (thread_current () != idle_thread)
+    thread_current ()->recent_cpu = F_ADD_INT (thread_current ()->recent_cpu, 1);
 }
 
 /* Returns 100 times the current thread's recent_cpu value. */
@@ -433,6 +443,11 @@ void
 thread_update_recent_cpu (void)
 {
 
+/* Update average load. */
+void
+thread_update_load_avg (void)
+{
+  load_avg = F_DIV_INT (F_ADD_INT (F_MULT_INT (load_avg, 59), thread_count_ready ()), 60);
 }
 
 /* Idle thread.  Executes when no other thread is ready to run.

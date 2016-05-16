@@ -182,6 +182,7 @@ timer_interrupt (struct intr_frame *args UNUSED)
   {
     /* Update average load. */
     load_avg = F_DIV_INT (F_ADD_INT (F_MULT_INT (load_avg, 59), thread_count_ready ()), 60);
+    thread_update_load_avg ();
   }
 }
 
