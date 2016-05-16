@@ -378,11 +378,7 @@ thread_update_priority (struct thread *t)
       if (list_entry (list_front (&t->locks_holding), struct lock, elem)->priority > max_priority)
         max_priority = list_entry (list_front (&t->locks_holding), struct lock, elem)->priority;
     }
-
-    if (max_priority > t->old_priority)
-      t->priority = max_priority;
-    else
-      t->priority = t->old_priority;
+    t->priority = max_priority > t->old_priority ? max_priority : t->old_priority;
   }
   else
     t->priority = t->old_priority;
