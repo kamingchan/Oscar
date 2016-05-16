@@ -367,6 +367,7 @@ thread_set_priority (int new_priority)
 void
 thread_update_priority (struct thread *t)
 {
+  if (t == idle_thread) return;
   if (!thread_mlfqs)
   {
     int max_priority = PRI_MIN;
