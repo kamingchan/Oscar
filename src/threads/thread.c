@@ -366,20 +366,24 @@ thread_set_priority (int new_priority)
 void
 thread_check_priority (struct thread *t)
 {
-  int max_priority = PRI_MIN;
-
-  if (!list_empty (&t->locks_holding))
+  if (!thread_mlfqs)
   {
-    list_sort (&t->locks_holding, lock_cmp_by_priority, NULL);
-    if (list_entry (list_front (&t->locks_holding), struct lock, elem)->priority > max_priority)
-      max_priority = list_entry (list_front (&t->locks_holding), struct lock, elem)->priority;
-  }
+    int max_priority = PRI_MIN;
 
-  if (max_priority > t->old_priority)
-    t->priority = max_priority;
+    if (!list_empty (&t->locks_holding))
+    {
+      list_sort (&t->locks_holding, lock_cmp_by_priority, NULL);
+      if (list_entry (list_front (&t->locks_holding), struct lock, elem)->priority > max_priority)
+        max_priority = list_entry (list_front (&t->locks_holding), struct lock, elem)->priority;
+    }
+
+    if (max_priority > t->old_priority)
+      t->priority = max_priority;
+    else
+      t->priority = t->old_priority;
+  }
   else
     t->priority = t->old_priority;
-
   list_sort (&ready_list, thread_cmp_by_priority, NULL);
 }
 
