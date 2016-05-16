@@ -404,18 +404,16 @@ thread_get_priority (void)
 
 /* Sets the current thread's nice value to NICE. */
 void
-thread_set_nice (int nice UNUSED)
+thread_set_nice (int nice)
 {
-  /* Not yet implemented. */
-  return 0;
+  thread_current ()->nice = nice;
 }
 
 /* Returns the current thread's nice value. */
 int
 thread_get_nice (void)
 {
-  /* Not yet implemented. */
-  return 0;
+  return thread_current ()->nice;
 }
 
 /* Returns 100 times the system load average. */
@@ -519,6 +517,7 @@ init_thread (struct thread *t, const char *name, int priority)
   t->ticks_blocked = 0;
   t->priority = priority;
   t->old_priority = priority;
+  t->nice = 0;
   list_init (&t->locks_holding);
   t->magic = THREAD_MAGIC;
   list_insert_ordered (&all_list, &t->allelem, thread_cmp_by_priority, NULL);

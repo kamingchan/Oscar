@@ -103,6 +103,7 @@ struct thread
 
     /* Owned by thread.c. */
     unsigned magic;                     /* Detects stack overflow. */
+    int nice;                           /* Nice. */
 
     /* Owned by thread.c and timer.c. */
     int ticks_blocked;                  /* Record the time the thread has been blocked. */
