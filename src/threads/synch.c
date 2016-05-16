@@ -208,7 +208,7 @@ lock_acquire (struct lock *lock)
            thread_current ()->priority > iterator_lock->priority)
     {
       iterator_lock->priority = thread_current ()->priority;
-      thread_check_priority (iterator_lock->holder);
+      thread_update_priority (iterator_lock->holder);
       iterator_lock = iterator_lock->holder->lock_waiting;
     }
   }
@@ -218,7 +218,7 @@ lock_acquire (struct lock *lock)
   thread_current ()->lock_waiting = NULL;
   list_insert_ordered (&thread_current ()->locks_holding, &lock->elem, lock_cmp_by_priority, NULL);
   lock->holder = thread_current ();
-  thread_check_priority (thread_current ());
+  thread_update_priority (thread_current ());
 }
 
 /* Tries to acquires LOCK and returns true if successful or false
@@ -253,7 +253,7 @@ lock_release (struct lock *lock)
   ASSERT (lock_held_by_current_thread (lock));
 
   list_remove (&lock->elem);
-  thread_check_priority (thread_current ());
+  thread_update_priority (thread_current ());
   lock->priority = PRI_MIN;
   lock->holder = NULL;
   sema_up (&lock->semaphore);
